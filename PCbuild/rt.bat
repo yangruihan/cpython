@@ -43,7 +43,7 @@ if NOT "%1"=="" (set regrtestargs=%regrtestargs% %1) & shift & goto CheckOpts
 
 if not defined prefix set prefix=%pcbuild%win32
 set exe=%prefix%\python%suffix%.exe
-set cmd="%exe%" %dashO% -u -Wd -E -bb -m test %regrtestargs%
+set cmd="%exe%" %dashO% -u -Wd -E -bb -m test test_venv %regrtestargs%
 if defined qmode goto Qmode
 
 echo Deleting .pyc files ...

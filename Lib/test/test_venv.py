@@ -34,6 +34,7 @@ def check_output(cmd, encoding=None):
         encoding=encoding)
     out, err = p.communicate()
     if p.returncode:
+        print(err)
         raise subprocess.CalledProcessError(
             p.returncode, cmd, out, err)
     return out, err
