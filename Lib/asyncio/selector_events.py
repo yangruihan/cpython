@@ -39,17 +39,6 @@ def _test_selector_event(selector, fd, event):
         return bool(key.events & event)
 
 
-if hasattr(socket, 'TCP_NODELAY'):
-    def _set_nodelay(sock):
-        if (sock.family in {socket.AF_INET, socket.AF_INET6} and
-                sock.type == socket.SOCK_STREAM and
-                sock.proto == socket.IPPROTO_TCP):
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-else:
-    def _set_nodelay(sock):
-        pass
-
-
 class BaseSelectorEventLoop(base_events.BaseEventLoop):
     """Selector event loop.
 
@@ -598,7 +587,10 @@ class _SelectorTransport(transports._FlowControlMixin,
     def __init__(self, loop, sock, protocol, extra=None, server=None):
         super().__init__(extra, loop)
         self._extra['socket'] = sock
-        self._extra['sockname'] = sock.getsockname()
+        try:
+            self._extra['sockname'] = sock.getsockname()
+        except OSError:
+            self._extra['sockname'] = None
         if 'peername' not in self._extra:
             try:
                 self._extra['peername'] = sock.getpeername()
@@ -669,10 +661,9 @@ class _SelectorTransport(transports._FlowControlMixin,
             self._loop._remove_writer(self._sock_fd)
             self._loop.call_soon(self._call_connection_lost, None)
 
-    def __del__(self):
+    def __del__(self, _warn=warnings.warn):
         if self._sock is not None:
-            warnings.warn(f"unclosed transport {self!r}", ResourceWarning,
-                          source=self)
+            _warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
             self._sock.close()
 
     def _fatal_error(self, exc, message='Fatal error on transport'):
@@ -742,7 +733,7 @@ class _SelectorSocketTransport(_SelectorTransport):
         # Disable the Nagle algorithm -- small writes will be
         # sent without waiting for the TCP ACK.  This generally
         # decreases the latency (in some cases significantly.)
-        _set_nodelay(self._sock)
+        base_events._set_nodelay(self._sock)
 
         self._loop.call_soon(self._protocol.connection_made, self)
         # only start reading when connection_made() has been called
@@ -988,9 +979,11 @@ class _SelectorDatagramTransport(_SelectorTransport):
         if not data:
             return
 
-        if self._address and addr not in (None, self._address):
-            raise ValueError(
-                f'Invalid address: must be None or {self._address}')
+        if self._address:
+            if addr not in (None, self._address):
+                raise ValueError(
+                    f'Invalid address: must be None or {self._address}')
+            addr = self._address
 
         if self._conn_lost and self._address:
             if self._conn_lost >= constants.LOG_THRESHOLD_FOR_CONNLOST_WRITES:
@@ -1001,7 +994,7 @@ class _SelectorDatagramTransport(_SelectorTransport):
         if not self._buffer:
             # Attempt to send it right away first.
             try:
-                if self._address:
+                if self._extra['peername']:
                     self._sock.send(data)
                 else:
                     self._sock.sendto(data, addr)
@@ -1024,7 +1017,7 @@ class _SelectorDatagramTransport(_SelectorTransport):
         while self._buffer:
             data, addr = self._buffer.popleft()
             try:
-                if self._address:
+                if self._extra['peername']:
                     self._sock.send(data)
                 else:
                     self._sock.sendto(data, addr)
