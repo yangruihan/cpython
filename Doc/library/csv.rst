@@ -161,10 +161,14 @@ The :mod:`csv` module defines the following classes:
    If a row has more fields than fieldnames, the remaining data is put in a
    list and stored with the fieldname specified by *restkey* (which defaults
    to ``None``).  If a non-blank row has fewer fields than fieldnames, the
-   missing values are filled-in with ``None``.
+   missing values are filled-in with the value of *restval* (which defaults
+   to ``None``).
 
    All other optional or keyword arguments are passed to the underlying
    :class:`reader` instance.
+
+   .. versionchanged:: 3.6
+      Returned rows are now of type :class:`OrderedDict`.
 
    .. versionchanged:: 3.8
       Returned rows are now of type :class:`dict`.
@@ -265,6 +269,20 @@ The :mod:`csv` module defines the following classes:
 
       Analyze the sample text (presumed to be in CSV format) and return
       :const:`True` if the first row appears to be a series of column headers.
+      Inspecting each column, one of two key criteria will be considered to
+      estimate if the sample contains a header:
+
+        - the second through n-th rows contain numeric values
+        - the second through n-th rows contain strings where at least one value's
+          length differs from that of the putative header of that column.
+
+      Twenty rows after the first row are sampled; if more than half of columns +
+      rows meet the criteria, :const:`True` is returned.
+
+   .. note::
+
+      This method is a rough heuristic and may produce both false positives and
+      negatives.
 
 An example for :class:`Sniffer` use::
 
