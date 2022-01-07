@@ -227,7 +227,7 @@ class ExceptionTests(unittest.TestCase):
         check('x = "a', 1, 5)
         check('lambda x: x = 2', 1, 1)
         check('f{a + b + c}', 1, 2)
-        check('[file for str(file) in []\n])', 1, 11)
+        check('[file for str(file) in []\n]', 1, 11)
         check('a = « hello » « world »', 1, 5)
         check('[\nfile\nfor str(file)\nin\n[]\n]', 3, 5)
         check('[file for\n str(file) in []]', 2, 2)
@@ -241,6 +241,8 @@ class ExceptionTests(unittest.TestCase):
         check('def f():\n  continue', 2, 3)
         check('def f():\n  break', 2, 3)
         check('try:\n  pass\nexcept:\n  pass\nexcept ValueError:\n  pass', 3, 1)
+        check('try:\n  pass\nexcept*:\n  pass', 3, 8)
+        check('try:\n  pass\nexcept*:\n  pass\nexcept* ValueError:\n  pass', 3, 8)
 
         # Errors thrown by tokenizer.c
         check('(0x+1)', 1, 3)
@@ -2391,11 +2393,11 @@ class SyntaxErrorTests(unittest.TestCase):
         # Check non utf-8 characters
         try:
             with open(TESTFN, 'bw') as testfile:
-                testfile.write(b'\x7fELF\x02\x01\x01\x00\x00\x00')
+                testfile.write(b"\x89")
             rc, out, err = script_helper.assert_python_failure('-Wd', '-X', 'utf8', TESTFN)
             err = err.decode('utf-8').splitlines()
 
-            self.assertEqual(err[-1], "SyntaxError: invalid non-printable character U+007F")
+            self.assertIn("SyntaxError: Non-UTF-8 code starting with '\\x89' in file", err[-1])
         finally:
             unlink(TESTFN)
 
