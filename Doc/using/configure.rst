@@ -35,8 +35,7 @@ General Options
 
    Define the size in bits of Python :class:`int` digits: 15 or 30 bits.
 
-   By default, the number of bits is selected depending on ``sizeof(void*)``:
-   30 bits if ``void*`` size is 64-bit or larger, 15 bits otherwise.
+   By default, the digit size is 30.
 
    Define the ``PYLONG_BITS_IN_DIGIT`` to ``15`` or ``30``.
 
@@ -404,14 +403,6 @@ Libraries options
    Don't define the ``HAVE_LIBREADLINE`` macro.
 
    .. versionadded:: 3.10
-
-.. cmdoption:: --with-tcltk-includes='-I...'
-
-   Override search for Tcl and Tk include files.
-
-.. cmdoption:: --with-tcltk-libs='-L...'
-
-   Override search for Tcl and Tk libraries.
 
 .. cmdoption:: --with-libm=STRING
 
